@@ -15,7 +15,8 @@ const create_stuff_table_sql = `
         item VARCHAR(45) NOT NULL,
         quantity INT NOT NULL,
         description VARCHAR(150) NULL,
-        PRIMARY KEY (id)
+        userid VARCHAR(50) NULL,
+        PRIMARY KEY (id) 
     );
 `
 db.execute(create_stuff_table_sql);

@@ -1,22 +1,16 @@
 //set up the server
-const express = require( "express" );
-const logger = require("morgan");
-const { auth } = require('express-openid-connect');
-const { requiresAuth } = require('express-openid-connect');
 const dotenv = require('dotenv');
 dotenv.config();
-
+const express = require( "express" );
 const helmet = require("helmet");
-const db = require('./db/db_pool');
+const logger = require("morgan");
 const app = express();
 const port = process.env.PORT || 8080;
+const db = require("./db/db_pool");
+//Other require lines
+const { auth, requiresAuth } = require('express-openid-connect');
 
-// Configure Express to use EJS
-app.set( "views",  __dirname + "/views");
-app.set( "view engine", "ejs" );
-
-//Configure Express to use certain HTTP headers for security
-//Explicitly set the CSP to allow the source of Materialize
+// Helmet middleware
 app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -25,8 +19,8 @@ app.use(helmet({
       }
     }
   })); 
-  
 
+// CODE FROM AUTH0:
 const config = {
     authRequired: false,
     auth0Logout: true,
@@ -34,7 +28,7 @@ const config = {
     baseURL: process.env.AUTH0_BASE_URL,
     clientID: process.env.AUTH0_CLIENT_ID,
     issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL
-};
+  };
 
 // auth router attaches /login, /logout, and /callback routes to the baseURL
 app.use(auth(config));
@@ -60,27 +54,41 @@ app.use((req, res, next) => {
 
 // req.isAuthenticated is provided from the auth router
 app.get('/authtest', (req, res) => {
-    res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
+  res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
 });
+
+// Rest of the code, e.g. routes
 
 app.get('/profile', requiresAuth(), (req, res) => {
     res.send(JSON.stringify(req.oidc.user));
 });
 
+
+// Configure Express to use EJS
+app.set( "views",  __dirname + "/views");
+app.set( "view engine", "ejs" );
+
+// define middleware that logs all incoming requests
+app.use(logger("dev"));
+
+// define middleware that serves static resources in the public directory
+app.use(express.static(__dirname + '/public'));
 // define a route for the default home page
 app.get( "/", ( req, res ) => {
-    res.render('index');
+    res.render("index");
 } );
+
+
 
 // define a route for the stuff inventory page
 const read_stuff_all_sql = `
     SELECT 
-        id, item, quantity
+        *
     FROM
-        stuff
+        shopping_list
 `
-app.get( "/stuff", ( req, res ) => {
-    db.execute(read_stuff_all_sql, (error, results) => {
+app.get( "/stuff", requiresAuth(), ( req, res ) => {
+    db.execute(read_stuff_all_sql, [req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
@@ -89,17 +97,17 @@ app.get( "/stuff", ( req, res ) => {
     });
 } );
 
-// define a route for the item detail page
-const read_stuff_item_sql = `
+const read_item_sql = `
     SELECT 
-        id, item, quantity, description 
+        *
     FROM
-        stuff
-    WHERE
-        id = ?
+        shopping_list
+    WHERE 
+        id = ?    
 `
-app.get( "/stuff/item/:id", ( req, res ) => {
-    db.execute(read_stuff_item_sql, [req.params.id], (error, results) => {
+// define a route for the item detail page
+app.get( "/stuff/item/:id", requiresAuth(), ( req, res ) => {
+    db.execute(read_stuff_item_sql, [req.params.id, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else if (results.length == 0)
@@ -117,12 +125,14 @@ app.get( "/stuff/item/:id", ( req, res ) => {
 const delete_item_sql = `
     DELETE 
     FROM
-        stuff
+        shopping_list
     WHERE
         id = ?
+    AND
+        userid = ?
 `
-app.get("/stuff/item/:id/delete", ( req, res ) => {
-    db.execute(delete_item_sql, [req.params.id], (error, results) => {
+app.get("/stuff/item/:id/delete", requiresAuth(), ( req, res ) => {
+    db.execute(delete_item_sql, [req.params.id, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
@@ -134,16 +144,22 @@ app.get("/stuff/item/:id/delete", ( req, res ) => {
 // define a route for item UPDATE
 const update_item_sql = `
     UPDATE
-        stuff
+        shopping_list
     SET
         item = ?,
         quantity = ?,
-        description = ?
+        description = ?,
+        price = ?,
+        Weight = ?,
+        Brand = ?,
+        id = ?
     WHERE
         id = ?
+    AND
+        userid = ?
 `
-app.post("/stuff/item/:id", ( req, res ) => {
-    db.execute(update_item_sql, [req.body.name, req.body.quantity, req.body.description, req.params.id], (error, results) => {
+app.post("/stuff/item/:id", requiresAuth(), ( req, res ) => {
+    db.execute(update_item_sql, [req.body.name, req.body.quantity, req.body.description, req.params.id, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
@@ -154,13 +170,13 @@ app.post("/stuff/item/:id", ( req, res ) => {
 
 // define a route for item CREATE
 const create_item_sql = `
-    INSERT INTO stuff
-        (item, quantity)
+    INSERT INTO shopping_list
+        (item, quantity, userid, description, price, Weight, Brand, id)
     VALUES
-        (?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?)
 `
-app.post("/stuff", ( req, res ) => {
-    db.execute(create_item_sql, [req.body.name, req.body.quantity], (error, results) => {
+app.post("/stuff", requiresAuth(), ( req, res ) => {
+    db.execute(create_item_sql, [req.body.name, req.body.quantity, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
@@ -169,7 +185,6 @@ app.post("/stuff", ( req, res ) => {
         }
     });
 })
-
 // start the server
 app.listen( port, () => {
     console.log(`App server listening on ${ port }. (Go to http://localhost:${ port })` );

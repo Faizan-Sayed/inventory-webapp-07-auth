@@ -12,7 +12,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
-    <link rel="stylesheet" href="/stylesheets/stuffStyle.css">
+    <style>
+        form {
+            border: solid 2px rgb(211, 211, 211);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        form:focus-within {
+            border-color: orange;
+        }
+
+        tr:hover {
+            background-color: #F0F0F0;
+        }
+    </style>
 
 </head>
 
@@ -20,7 +34,7 @@
     <header>
         <nav>
             <div class="nav-wrapper">
-                <a href="/" class="brand-logo">Stuff Manager</a>
+                <a href="/" class="brand-logo">Shopping List</a>
                 <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
                 <ul id="desktop-nav" class="right hide-on-med-and-down">
                     <li><a href="/"><i class="material-icons left">home</i>Home</a></li>
@@ -48,41 +62,107 @@
     <!-- Actual page content! -->
     <div class="container">
         <div class="section" id="stuffList">
-            <h1>Stuff inventory:</h1>
+            <h1>Shopping List:</h1>
+            <a class="btn-small waves-effect waves-light" href="/">
+                <i class="material-icons left">arrow_back</i>Return to Main Menu
+            </a>
             <table>
                 <thead>
 
                     <tr>
+                        <th>ID</th>
                         <th>Item</th>
                         <th>Quantity</th>
-                        <th></th>
+                        <th>Price ($)</th>
+                        <th>Weight (oz)</th>
+                        <th>Brand</th>
+                        <th>Description</th>
+                        
                     </tr>
 
                 </thead>
                 <tbody>
-                    <% for (let i = 0; i < inventory.length; i++) { %>
+                        <% for (let i = 0; i < inventory.length; i++) { %>
                         <tr>
+                            <td><%= inventory[i].id %></td>
                             <td><%= inventory[i].item %></td>
                             <td><%= inventory[i].quantity %></td>
+                            <td><%= inventory[i].price %></td>
+                            <td><%= inventory[i].Weight %></td>
+                            <td><%= inventory[i].Brand %></td>
+                            <td><%= inventory[i].description %></td>
+
                             <td>
-                                <a class="btn-small waves-effect waves-light" href="/stuff/item/<%= inventory[i].id %>" >
-                                    <i class="material-icons right">edit</i>
-                                    Info/Edit
-                                </a>
-                                <a class="btn-small waves-effect waves-light red" href="/stuff/item/<%= inventory[i].id %>/delete">
-                                    <i class="material-icons right">delete</i>
-                                    Delete
-                                </a>
+                                <a class="btn-small waves-effect waves-light" href=<%= "/stuff/item/" + inventory[i].id %> ><i
+                                        class="material-icons right">edit</i>Info/Edit</a>
+                                <a class="btn-small waves-effect waves-light red"><i
+                                        class="material-icons right">delete</i>Delete</a>
                             </td>
                         </tr>
-                    <% } %>
+                        <% } %>
+                    <!-- <tr>
+                        <td>Apples</td>
+                        <td>5</td>
+                        <td>3.50</td>
+                        <td>2.00</td>
+                        <td>Ap Ell's Groceries</td>
+                        
+                        <td>
+                            <a class="btn-small waves-effect waves-light" href="item.html">
+                                <i class="material-icons right">edit</i>
+                                Info/Edit
+                            </a>
+                            <a class="btn-small waves-effect waves-light red">
+                                <i class="material-icons right">delete</i>
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Bananas</td>
+                        <td>4</td>
+                        <td>3.75</td>
+                        <td>3.00</td>
+                        <td>Ban & Anna's</td>
+                        <td>
+                            <a class="btn-small waves-effect waves-light" href="item.html">
+                                <i class="material-icons right">edit</i>
+                                Info/Edit
+                            </a>
+                            <a class="btn-small waves-effect waves-light red">
+                                <i class="material-icons right">delete</i>
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Cranberry Bag</td>
+                        <td>2</td>
+                        <td>11.50</td>
+                        <td>6.50</td>
+                        <td>Uncle Crann Bery's</td>
+                        <td>
+                            <a class="btn-small waves-effect waves-light" href="item.html">
+                                <i class="material-icons right">edit</i>
+                                Info/Edit
+                            </a>
+                            <a class="btn-small waves-effect waves-light red">
+                                <i class="material-icons right">delete</i>
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+ -->
+
                 </tbody>
             </table>
         </div>
 
         <div class="section" id="stuffAdd">
-            <h2>Add stuff:</h2>
-            <form method="post" action="/stuff"> <!-- default action is the page's URL --> 
+            <h2>Add items:</h2>
+            <form>
                 <div class="row">
                     <div class="input-field col s6">
                         <label for="nameInput">Item Name:</label>
@@ -92,9 +172,27 @@
                         <label for="quantityInput">Item Quantity:</label>
                         <input type="number" name="quantity" id="quantityInput" value=1 required>
                     </div>
+                    <div class="input-field col s6">
+                        <label for="quantityInput">Item Price: ($)</label>
+                        <input type="number" name="quantity" id="quantityInput" value=1 required>
+                    </div>
+                    <div class="input-field col s6">
+                        <label for="quantityInput">Item Weight:</label>
+                        <input type="number" name="quantity" id="quantityInput" value=1 required>
+                    </div>
+                    <div class="input-field col s6">
+                        <label for="nameInput">Brand Name:</label>
+                        <input type="text" name="name" id="nameInput" class="validate" data-length="32" required>
+                    </div>
+                    <div class="input-field col s6">
+                        <label for="nameInput">Item Description:</label>
+                        <input type="text" name="name" id="nameInput" class="validate" data-length="32" required>
+                    </div>
                 </div>
-                <button class="btn waves-effect waves-light" type="submit"><i
-                        class="material-icons right">send</i>Submit</button>
+                <button class="btn waves-effect waves-light" type="submit">
+                    <i class="material-icons right">send</i>
+                    Submit
+                </button>
             </form>
         </div>
     </div>
@@ -103,7 +201,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
     <!-- initialize Materialize elements -->
-    <script src="/scripts/materializeAutoinit.js"></script>
+    <script> M.AutoInit();</script>
 
 </body>
 
