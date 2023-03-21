@@ -164,7 +164,7 @@ const update_item_sql = `
         userid = ?
 `
 app.post("/stuff/item/:id", requiresAuth(), ( req, res ) => {
-    db.execute(update_item_sql, [req.body.name, req.body.quantity, req.body.description, req.params.id, req.oidc.user.email], (error, results) => {
+    db.execute(update_item_sql, [req.body.item, req.body.quantity, req.body.description, req.body.price, req.body.Weight, req.body.Brand, req.params.id, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
