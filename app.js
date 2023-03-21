@@ -1,14 +1,15 @@
 //set up the server
-const dotenv = require('dotenv');
-dotenv.config();
-const express = require( "express" );
-const helmet = require("helmet");
+const express = require("express");
 const logger = require("morgan");
+const db = require('./db/db_pool');
+const helmet = require("helmet");
+const { auth } = require('express-openid-connect');
+const { requiresAuth } = require('express-openid-connect');
 const app = express();
 const port = process.env.PORT || 8080;
-const db = require("./db/db_pool");
-//Other require lines
-const { auth, requiresAuth } = require('express-openid-connect');
+const dotenv = require('dotenv');
+dotenv.config();
+
 
 // Helmet middleware
 app.use(helmet({
@@ -86,6 +87,8 @@ const read_stuff_all_sql = `
         *
     FROM
         shopping_list
+    WHERE 
+        userid = ?
 `
 app.get( "/stuff", requiresAuth(), ( req, res ) => {
     db.execute(read_stuff_all_sql, [req.oidc.user.email], (error, results) => {
@@ -104,10 +107,12 @@ const read_item_sql = `
         shopping_list
     WHERE 
         id = ?    
+    AND
+        userid = ?
 `
 // define a route for the item detail page
-app.get( "/stuff/item/:id", requiresAuth(), ( req, res ) => {
-    db.execute(read_stuff_item_sql, [req.params.id, req.oidc.user.email], (error, results) => {
+app.get( "/stuff/item/:id", requiresAuth(), requiresAuth(), ( req, res ) => {
+    db.execute(read_stuff_item_sql, [req.params.id, req.oidc.user.email, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else if (results.length == 0)
@@ -131,8 +136,8 @@ const delete_item_sql = `
     AND
         userid = ?
 `
-app.get("/stuff/item/:id/delete", requiresAuth(), ( req, res ) => {
-    db.execute(delete_item_sql, [req.params.id, req.oidc.user.email], (error, results) => {
+app.get("/stuff/item/:id/delete", requiresAuth(), requiresAuth(), ( req, res ) => {
+    db.execute(delete_item_sql, [req.params.id, req.oidc.user.email, req.oidc.user.email], (error, results) => {
         if (error)
             res.status(500).send(error); //Internal Server Error
         else {
